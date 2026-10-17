@@ -38,34 +38,28 @@ SQL injection occurs when untrusted user input is directly concatenated into a d
 
 ```mermaid
 flowchart TD
-    subgraph Client ["Client Browser (Localhost Dashboard)"]
-        UI[Cybersecurity Web UI]
-    end
+    A["Client Browser"] --> B["Cybersecurity Web UI"]
+    B --> C["Flask Backend"]
 
-    subgraph Server ["Flask Backend Server (app.py)"]
-        Detect[Detection Engine /api/detect]
-        Sim[AST Query Simulator /api/simulate-exploit]
-        SecureAuth[Secure Parameterized Auth /api/secure-login]
-    end
+    C --> D["Detection Engine"]
+    C --> E["Exploitation Simulator"]
+    C --> F["Secure Authentication"]
 
-    subgraph Database ["SQLite Local Database (sql_lab.db)"]
-        PreparedStatement["Pre-compiled Query Plan: SELECT ... WHERE username = ?"]
-        Hasher["PBKDF2:SHA256 Salted Verification"]
-        UsersTable[(Dummy Users Table)]
-    end
+    D --> G["Input Analysis"]
+    E --> H["Query Simulation"]
+    F --> I["Parameterized SQL Query"]
 
-    UI -->|Input String| Detect
-    Detect -->|Risk Score & Patterns| UI
+    I --> J[("SQLite Database")]
+    J --> K["Password Hash Verification"]
+    K --> L["Authentication Result"]
 
-    UI -->|Simulated Payload| Sim
-    Sim -->|AST Breakdown & Theoretical Outcome| UI
+    G --> M["Detection Report"]
+    H --> N["Simulation Report"]
 
-    UI -->|Login Credentials| SecureAuth
-    SecureAuth -->|Bound Parameter (Literal)| PreparedStatement
-    PreparedStatement --> UsersTable
-    UsersTable --> Hasher
-    Hasher -->|Success / Neutralized Diagnostic| SecureAuth
-    SecureAuth -->|Response Payload| UI
+    M --> O["Dashboard"]
+    N --> O
+    L --> O
+    
 ```
 
 ---
