@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Educational cybersecurity lab demonstrating detection, exploitation analysis, and parameterized query mitigation of SQL injection vulnerabilities in web applications.">
+    <title>SQL Injection Lab | Detection, Exploitation Analysis & Mitigation</title>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Top System Bar -->
+    <header class="system-header">
+        <div class="header-container">
+            <div class="logo-group">
+                <span class="cyber-icon">🛡️</span>
+                <div>
+                    <h1 class="system-title">SQL-i CYBER LAB</h1>
+                    <p class="system-subtitle">Detection • Exploitation Analysis • Mitigation</p>
+                </div>
+            </div>
+            <div class="status-badges">
+                <span class="badge badge-pulse">● LAB ISOLATED</span>
+                <span class="badge badge-info">SQLite Localhost</span>
+                <span class="badge badge-success">Defense Mode: ACTIVE</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Lab Disclaimer Banner -->
+    <div class="disclaimer-banner">
+        <div class="container banner-inner">
+            <span class="alert-icon">⚠️</span>
+            <span>
+                <strong>Educational Laboratory Notice:</strong> This project is strictly confined to a local SQLite database on localhost using dummy accounts. The exploitation analysis is an educational syntax simulation with zero external attacks or live credential bypasses.
+            </span>
+        </div>
+    </div>
+
+    <!-- Main Application Container -->
+    <main class="container main-content">
+        <!-- Navigation Tabs -->
+        <nav class="nav-tabs" aria-label="Lab Modules">
+            <button class="tab-btn active" id="tab-btn-overview" onclick="switchTab('overview')">
+                <span class="tab-num">00</span> Overview & Theory
+            </button>
+            <button class="tab-btn" id="tab-btn-detection" onclick="switchTab('detection')">
+                <span class="tab-num">01</span> Detection Engine
+            </button>
+            <button class="tab-btn" id="tab-btn-exploitation" onclick="switchTab('exploitation')">
+                <span class="tab-num">02</span> Exploitation Analysis
+            </button>
+            <button class="tab-btn" id="tab-btn-mitigation" onclick="switchTab('mitigation')">
+                <span class="tab-num">03</span> Mitigation & Live Auth
+            </button>
+            <button class="tab-btn" id="tab-btn-comparison" onclick="switchTab('comparison')">
+                <span class="tab-num">04</span> Comparison Matrix
+            </button>
+        </nav>
+
+        <!-- ============================================================= -->
+        <!-- TAB 0: OVERVIEW & THEORY -->
+        <!-- ============================================================= -->
+        <section id="tab-overview" class="tab-content active">
+            <div class="card card-hero">
+                <div class="hero-badge">ACADEMIC MINOR PROJECT</div>
+                <h2>Understanding SQL Injection (CWE-89 / OWASP A03:2021)</h2>
+                <p class="lead">
+                    SQL Injection (SQLi) is a critical security vulnerability where untrusted user input is directly concatenated into a dynamic database query. This enables an attacker to manipulate the query's Abstract Syntax Tree (AST), modifying its execution logic, bypassing authentication, or extracting unauthorized records.
+                </p>
+            </div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-icon">⚡</span>
+                        <h3>Root Cause: Code vs. Data Confusion</h3>
+                    </div>
+                    <p>
+                        The vulnerability arises when an application fails to enforce strict boundaries between <strong>executable SQL instructions</strong> (code) and <strong>user-provided variables</strong> (data). When raw strings are concatenated, characters like <code>'</code>, <code>"</code>, and <code>--</code> are interpreted as control syntax by the SQL compiler rather than literal values.
+                    </p>
+                    <div class="code-box">
+                        <div class="code-title">Unsafe Pattern (String Concatenation):</div>
+                        <pre><code>query = "SELECT * FROM users WHERE username = '" + user_input + "'"</code></pre>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-icon">🔍</span>
+                        <h3>Normal vs. Suspicious Login Behavior</h3>
+                    </div>
+                    <div class="behavior-comparison">
+                        <div class="behavior-box safe-box">
+                            <h4 class="text-success">Normal User Behavior</h4>
+                            <ul>
+                                <li>Input consists of alphanumeric characters (<code>alice</code>, <code>john_doe</code>) or email format.</li>
+                                <li>Query logic remains unaltered: checks for an exact username and password match.</li>
+                                <li>Only zero or one user record is retrieved.</li>
+                            </ul>
+                        </div>
+                        <div class="behavior-box warning-box">
+                            <h4 class="text-danger">Suspicious / Attack Behavior</h4>
+                            <ul>
+                                <li>Input contains SQL delimiters (<code>'</code>), operators (<code>OR</code>), and tautologies (<code>1=1</code>).</li>
+                                <li>Input contains truncation sequences (<code>--</code>, <code>/*</code>) to discard password checks.</li>
+                                <li>WHERE clause evaluates unconditionally to TRUE, returning unexpected records.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fictional Dummy Accounts in Lab -->
+            <div class="card mt-2">
+                <div class="card-header">
+                    <span class="card-icon">👥</span>
+                    <h3>Seeded Educational Dummy Accounts (Localhost SQLite)</h3>
+                </div>
+                <p>The local database contains the following non-sensitive fictional test accounts with cryptographically salted PBKDF2:SHA256 password hashes:</p>
+                <div class="dummy-grid">
+                    {% for account in dummy_accounts %}
+                    <div class="dummy-card">
+                        <div class="dummy-role">{{ account.role }}</div>
+                        <div class="dummy-name">{{ account.full_name }}</div>
+                        <div class="dummy-field"><strong>Username:</strong> <code>{{ account.username }}</code></div>
+                        <div class="dummy-field"><strong>Password:</strong> <code>{{ account.sample_password }}</code></div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- TAB 1: DETECTION ENGINE -->
+        <!-- ============================================================= -->
+        <section id="tab-detection" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">🛡️</span>
+                    <div>
+                        <h2>Phase 1 — SQL Injection Detection Engine</h2>
+                        <p class="card-desc">Inspects incoming text for syntax breakout characters, comment sequences, tautologies, and dangerous keywords.</p>
+                    </div>
+                </div>
+
+                <!-- Input Scanner Form -->
+                <div class="scanner-box">
+                    <label for="detect-input" class="label-strong">Input String to Analyze:</label>
+                    <div class="input-with-button">
+                        <input type="text" id="detect-input" class="cyber-input" placeholder="Enter username or input string (e.g. ' OR '1'='1)..." value="' OR '1'='1">
+                        <button id="btn-scan" class="btn btn-primary" onclick="runDetection()">
+                            <span>⚡ Scan Input</span>
+                        </button>
+                    </div>
+
+                    <!-- Quick Sample Presets -->
+                    <div class="presets-group">
+                        <span class="preset-label">Test Cases:</span>
+                        <button class="preset-btn" onclick="setDetectInput('alice')">Legitimate (alice)</button>
+                        <button class="preset-btn" onclick="setDetectInput('john.doe@college.edu')">Legitimate (Email)</button>
+                        <button class="preset-btn" onclick="setDetectInput('\' OR \'1\'=\'1')">Tautology Bypass (' OR '1'='1)</button>
+                        <button class="preset-btn" onclick="setDetectInput('admin\'--')">Comment Truncation (admin'--)</button>
+                        <button class="preset-btn" onclick="setDetectInput('\' UNION SELECT username, password FROM users--')">Union Exfiltration</button>
+                    </div>
+                </div>
+
+                <!-- Detection Results Panel -->
+                <div id="detection-results" class="results-panel mt-2">
+                    <div class="results-header">
+                        <h3>Detection Inspection Report</h3>
+                        <div id="detect-badge" class="badge badge-neutral">AWAITING SCAN</div>
+                    </div>
+
+                    <div class="grid-3 mt-1">
+                        <div class="metric-card">
+                            <span class="metric-label">Risk Score</span>
+                            <div id="detect-score" class="metric-val text-cyan">0 / 100</div>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">Threat Classification</span>
+                            <div id="detect-level" class="metric-val text-success">SAFE</div>
+                        </div>
+                        <div class="metric-card">
+                            <span class="metric-label">Rules Triggered</span>
+                            <div id="detect-count" class="metric-val">0</div>
+                        </div>
+                    </div>
+
+                    <div class="explanation-box mt-2">
+                        <h4>Analysis Summary:</h4>
+                        <p id="detect-summary" class="summary-text">Click "Scan Input" to inspect the text against detection signatures.</p>
+                    </div>
+
+                    <!-- Matched Rules Table -->
+                    <div class="table-container mt-2">
+                        <table class="cyber-table" id="detect-table">
+                            <thead>
+                                <tr>
+                                    <th>Severity</th>
+                                    <th>Rule Name</th>
+                                    <th>Category</th>
+                                    <th>Matched Tokens</th>
+                                    <th>Explanation</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detect-table-body">
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">No rules triggered yet.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- TAB 2: EXPLOITATION ANALYSIS (SAFE SIMULATOR) -->
+        <!-- ============================================================= -->
+        <section id="tab-exploitation" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">🔬</span>
+                    <div>
+                        <h2>Phase 2 — Exploitation Analysis & Query Anatomy</h2>
+                        <p class="card-desc">Educational simulation explaining how untrusted input alters the Abstract Syntax Tree (AST) of dynamic SQL.</p>
+                    </div>
+                </div>
+
+                <div class="alert-box alert-warning">
+                    <strong>Safe Educational Simulator:</strong> This view models the structural impact of string concatenation in memory. No live exploitation or unauthorized database bypass is executed.
+                </div>
+
+                <!-- Simulation Form -->
+                <div class="grid-2 mt-2">
+                    <div>
+                        <label for="sim-username" class="label-strong">Simulated Username Input:</label>
+                        <input type="text" id="sim-username" class="cyber-input" value="' OR '1'='1" placeholder="Enter simulated username payload...">
+
+                        <label for="sim-password" class="label-strong mt-1">Simulated Password Input:</label>
+                        <input type="text" id="sim-password" class="cyber-input" value="arbitrary_secret" placeholder="Enter simulated password...">
+
+                        <div class="mt-2">
+                            <button id="btn-simulate" class="btn btn-warning" onclick="runSimulation()">
+                                <span>🔬 Simulate Query Construction</span>
+                            </button>
+                        </div>
+
+                        <div class="presets-group mt-2">
+                            <span class="preset-label">Simulation Presets:</span>
+                            <button class="preset-btn" onclick="setSimInput('alice', 'AlicePassword123!')">Normal Login</button>
+                            <button class="preset-btn" onclick="setSimInput('\' OR \'1\'=\'1', 'anything')">' OR '1'='1 Tautology</button>
+                            <button class="preset-btn" onclick="setSimInput('admin_demo\'--', '')">admin'-- Comment</button>
+                            <button class="preset-btn" onclick="setSimInput('test\'', '')">Unbalanced Single Quote</button>
+                        </div>
+                    </div>
+
+                    <!-- Fictional Vulnerable Code Pattern -->
+                    <div>
+                        <div class="code-box">
+                            <div class="code-title">Fictional Vulnerable Code Pattern (Python/Flask):</div>
+                            <pre><code># INSECURE: Dynamic String Concatenation
+query = (
+    "SELECT * FROM users "
+    f"WHERE username = '{user_input}' "
+    f"AND password = '{pass_input}';"
+)
+cursor.execute(query) # VULNERABLE TO SQLi</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Output -->
+                <div id="sim-results" class="results-panel mt-2">
+                    <h3>Simulated Query Anatomy & AST Breakdown</h3>
+
+                    <div class="code-box mt-1">
+                        <div class="code-title">Resulting Constructed Query String:</div>
+                        <pre><code id="sim-query-display" class="text-warning">SELECT * FROM users WHERE username = '' OR '1'='1' AND password = 'arbitrary_secret';</code></pre>
+                    </div>
+
+                    <div class="grid-2 mt-2">
+                        <div class="card card-sub">
+                            <h4>Query Logic Transformation</h4>
+                            <p id="sim-behavior" class="text-muted">Simulate a query to analyze logic manipulation.</p>
+                            <div id="sim-breakdown-badges" class="badges-row mt-1"></div>
+                        </div>
+                        <div class="card card-sub">
+                            <h4>Simulated Theoretical Outcome</h4>
+                            <div id="sim-status-badge" class="badge badge-warning mb-1">THEORETICAL ANALYSIS</div>
+                            <p id="sim-explanation" class="text-muted">Awaiting simulation run.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- TAB 3: MITIGATION & LIVE AUTHENTICATION -->
+        <!-- ============================================================= -->
+        <section id="tab-mitigation" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">🔒</span>
+                    <div>
+                        <h2>Phase 3 — Parameterized Mitigation & Secure Authentication</h2>
+                        <p class="card-desc">Live SQLite authentication using parameterized queries ('?' placeholders) and PBKDF2:SHA256 password hashing.</p>
+                    </div>
+                </div>
+
+                <div class="grid-2 mt-2">
+                    <!-- Live Login Form -->
+                    <div class="card card-sub">
+                        <h3>Live Authentication Tester (Localhost SQLite)</h3>
+                        <p class="text-muted text-sm">Test legitimate dummy logins or injection strings against the live secure database.</p>
+
+                        <form id="secure-login-form" onsubmit="event.preventDefault(); runSecureLogin();">
+                            <label for="login-username" class="label-strong mt-1">Username / Test Input:</label>
+                            <input type="text" id="login-username" class="cyber-input" placeholder="e.g. alice or ' OR '1'='1" required>
+
+                            <label for="login-password" class="label-strong mt-1">Password:</label>
+                            <input type="password" id="login-password" class="cyber-input" placeholder="e.g. AlicePassword123! or leave blank">
+
+                            <div class="mt-2 flex-gap">
+                                <button type="submit" id="btn-login" class="btn btn-success">
+                                    <span>🔐 Authenticate (Secure Parameterized)</span>
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="presets-group mt-2">
+                            <span class="preset-label">Fill Credentials:</span>
+                            <button class="preset-btn" onclick="fillLogin('alice', 'AlicePassword123!')">Valid (Alice)</button>
+                            <button class="preset-btn" onclick="fillLogin('bob', 'BobPassword456!')">Valid (Bob)</button>
+                            <button class="preset-btn" onclick="fillLogin('admin_demo', 'AdminLabDemo789!')">Valid (Admin)</button>
+                            <button class="preset-btn" onclick="fillLogin('\' OR \'1\'=\'1', 'anything')">Test Injection (' OR '1'='1)</button>
+                        </div>
+                    </div>
+
+                    <!-- Secure Implementation Architecture -->
+                    <div>
+                        <div class="code-box">
+                            <div class="code-title">Production-Grade Secure Pattern (Parameterized):</div>
+                            <pre><code># SECURE: SQLite Parameterized Query (database.py)
+query = """
+    SELECT id, username, password_hash, full_name, role 
+    FROM users 
+    WHERE username = ?
+"""
+# Input is bound as literal parameter, NOT parsed as SQL
+cursor.execute(query, (username,))
+user = cursor.fetchone()
+
+# Cryptographic Salted Hash Verification
+if user and check_password_hash(user['password_hash'], password):
+    return user # Authenticated safely</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Login Results Display -->
+                <div id="login-results" class="results-panel mt-2" style="display: none;">
+                    <div class="results-header">
+                        <h3>Live Authentication & Mitigation Diagnostic</h3>
+                        <div id="login-badge" class="badge">STATUS</div>
+                    </div>
+
+                    <div id="login-message-box" class="alert-box mt-1">
+                        <span id="login-message"></span>
+                    </div>
+
+                    <div class="grid-2 mt-2">
+                        <div class="card card-sub">
+                            <h4>Parameterized Query Dissection</h4>
+                            <div class="code-box">
+                                <div class="code-title">Prepared Statement:</div>
+                                <pre><code id="login-query-used">SELECT ... WHERE username = ?</code></pre>
+                            </div>
+                            <p class="text-sm text-muted mt-1">
+                                <strong>Bound Parameter:</strong> <code id="login-param-bound">""</code>
+                            </p>
+                        </div>
+
+                        <div class="card card-sub">
+                            <h4>Security & Neutralization Analysis</h4>
+                            <p id="login-neutralization" class="text-sm"></p>
+                            <div id="user-profile-card" class="mt-1" style="display: none;">
+                                <div class="badge badge-success mb-1">VERIFIED USER PROFILE</div>
+                                <p><strong>Name:</strong> <span id="profile-name"></span></p>
+                                <p><strong>Role:</strong> <span id="profile-role"></span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- TAB 4: COMPARISON MATRIX -->
+        <!-- ============================================================= -->
+        <section id="tab-comparison" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-icon">📊</span>
+                    <div>
+                        <h2>Vulnerable Construction vs. Parameterized Mitigation</h2>
+                        <p class="card-desc">Comparative analysis of database interaction architectures and defense mechanisms.</p>
+                    </div>
+                </div>
+
+                <div class="table-container mt-2">
+                    <table class="cyber-table comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Security Dimension</th>
+                                <th>Insecure Implementation (Dynamic Concatenation)</th>
+                                <th>Secure Implementation (Parameterized Queries)</th>
+                                <th>Defense Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Query Compilation</strong></td>
+                                <td class="text-danger">Query and user input are parsed together as a single raw string.</td>
+                                <td class="text-success">Query template is pre-compiled; parameters are sent separately over the binary protocol.</td>
+                                <td>Separates executable code from data boundaries completely.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Special Characters (<code>'</code>, <code>"</code>, <code>--</code>)</strong></td>
+                                <td class="text-danger">Interpreted as SQL control operators and delimiters.</td>
+                                <td class="text-success">Treated purely as literal character data (string constants).</td>
+                                <td>An injected <code>' OR 1=1</code> is searched as a literal username, never altering logic.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Password Handling</strong></td>
+                                <td class="text-danger">Plaintext or weak unsalted hashes (MD5/SHA1) easily crackable via rainbow tables.</td>
+                                <td class="text-success">Cryptographic PBKDF2:SHA256 with 16-byte random salts per account.</td>
+                                <td>Prevents offline dictionary attacks and rainbow table lookups even if database is dumped.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Input Validation</strong></td>
+                                <td class="text-warning">Absent or relies on fragile blocklists (easily bypassed with encoding/tricks).</td>
+                                <td class="text-success">Strict allowlist validation (e.g. regex for alphanumeric characters) as defense-in-depth.</td>
+                                <td>Reduces unexpected data formats before hitting database layers.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Principle of Least Privilege</strong></td>
+                                <td class="text-danger">Application runs with full DB administrator (sa/root) privileges.</td>
+                                <td class="text-success">Database connection is restricted strictly to read/write on required tables.</td>
+                                <td>Limits blast radius even if another application flaw exists.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Architectural Defense Pillars -->
+                <div class="grid-3 mt-3">
+                    <div class="pillar-card">
+                        <div class="pillar-num">01</div>
+                        <h4>Primary Defense</h4>
+                        <p><strong>Parameterized Queries / ORMs:</strong> Always use prepared statements or reputable ORMs (SQLAlchemy, Hibernate) that natively enforce parameter separation.</p>
+                    </div>
+                    <div class="pillar-card">
+                        <div class="pillar-num">02</div>
+                        <h4>Secondary Defense</h4>
+                        <p><strong>Input Sanitization & Allowlists:</strong> Validate length, character sets, and formats on all incoming HTTP parameters.</p>
+                    </div>
+                    <div class="pillar-card">
+                        <div class="pillar-num">03</div>
+                        <h4>Layered Defense</h4>
+                        <p><strong>WAF & Real-Time Detection:</strong> Deploy Web Application Firewalls and heuristic logging engines to detect anomalous query patterns before DB execution.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="system-footer">
+        <div class="container footer-content">
+            <p>Detection, Exploitation Analysis, and Mitigation of SQL Injection Vulnerabilities in Web Applications</p>
+            <p class="text-muted text-sm">Educational College Minor Project • Localhost SQLite Lab • Confidential & Non-Disclosive</p>
+        </div>
+    </footer>
+
+    <!-- Frontend Interactive Logic -->
+    <script>
+        // Tab Switching Logic
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            const targetContent = document.getElementById('tab-' + tabName);
+            const targetBtn = document.getElementById('tab-btn-' + tabName);
+            if (targetContent) targetContent.classList.add('active');
+            if (targetBtn) targetBtn.classList.add('active');
+        }
+
+        // Phase 1: Detection Scanner
+        function setDetectInput(text) {
+            document.getElementById('detect-input').value = text;
+            runDetection();
+        }
+
+        async function runDetection() {
+            const inputVal = document.getElementById('detect-input').value;
+            const btn = document.getElementById('btn-scan');
+            btn.disabled = true;
+            btn.innerHTML = '<span>Scanning...</span>';
+
+            try {
+                const response = await fetch('/api/detect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ input_text: inputVal })
+                });
+                const data = await response.json();
+
+                // Update UI elements
+                const badge = document.getElementById('detect-badge');
+                const score = document.getElementById('detect-score');
+                const level = document.getElementById('detect-level');
+                const count = document.getElementById('detect-count');
+                const summary = document.getElementById('detect-summary');
+                const tbody = document.getElementById('detect-table-body');
+
+                score.textContent = `${data.risk_score} / 100`;
+                level.textContent = data.risk_level;
+                count.textContent = data.matched_rules.length;
+                summary.textContent = data.analysis_summary;
+
+                // Color classes
+                badge.className = 'badge';
+                if (data.risk_level === 'HIGH RISK') {
+                    badge.classList.add('badge-danger');
+                    badge.textContent = 'HIGH RISK DETECTED';
+                    level.className = 'metric-val text-danger';
+                } else if (data.risk_level === 'SUSPICIOUS') {
+                    badge.classList.add('badge-warning');
+                    badge.textContent = 'SUSPICIOUS INPUT';
+                    level.className = 'metric-val text-warning';
+                } else {
+                    badge.classList.add('badge-success');
+                    badge.textContent = 'INPUT SAFE';
+                    level.className = 'metric-val text-success';
+                }
+
+                // Populate Rules Table
+                tbody.innerHTML = '';
+                if (data.matched_rules.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-success">Clean Input: No suspicious SQL tokens or delimiters detected.</td></tr>';
+                } else {
+                    data.matched_rules.forEach(rule => {
+                        const tr = document.createElement('tr');
+                        const sevClass = rule.severity === 'CRITICAL' ? 'badge-danger' : 'badge-warning';
+                        tr.innerHTML = `
+                            <td><span class="badge ${sevClass}">${rule.severity}</span></td>
+                            <td><strong>${rule.name}</strong></td>
+                            <td>${rule.category}</td>
+                            <td><code>${rule.matches_found.join(', ')}</code></td>
+                            <td class="text-sm">${rule.description}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Detection API error. Ensure Flask server is running.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<span>⚡ Scan Input</span>';
+            }
+        }
+
+        // Phase 2: Exploitation Analysis Simulator
+        function setSimInput(u, p) {
+            document.getElementById('sim-username').value = u;
+            document.getElementById('sim-password').value = p;
+            runSimulation();
+        }
+
+        async function runSimulation() {
+            const u = document.getElementById('sim-username').value;
+            const p = document.getElementById('sim-password').value;
+            const btn = document.getElementById('btn-simulate');
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/simulate-exploit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                const data = await response.json();
+
+                document.getElementById('sim-query-display').textContent = data.simulated_raw_query;
+                document.getElementById('sim-behavior').textContent = data.query_behavior;
+                document.getElementById('sim-explanation').textContent = data.explanation;
+
+                const badge = document.getElementById('sim-status-badge');
+                badge.className = 'badge mb-1';
+                if (data.theoretical_outcome === 'THEORETICAL_BYPASS') {
+                    badge.classList.add('badge-danger');
+                    badge.textContent = 'THEORETICAL AUTH BYPASS CONDITION';
+                } else if (data.theoretical_outcome === 'SYNTAX_ERROR_RISK') {
+                    badge.classList.add('badge-warning');
+                    badge.textContent = 'SYNTAX ERROR / LEAK RISK';
+                } else {
+                    badge.classList.add('badge-success');
+                    badge.textContent = 'STANDARD NORMAL QUERY';
+                }
+
+                const badgesRow = document.getElementById('sim-breakdown-badges');
+                badgesRow.innerHTML = '';
+                const bd = data.syntax_breakdown;
+                if (bd.has_quote_breakout) {
+                    badgesRow.innerHTML += '<span class="badge badge-warning">Quote Delimiter Breakout</span> ';
+                }
+                if (bd.has_boolean_tautology) {
+                    badgesRow.innerHTML += '<span class="badge badge-danger">Tautology (OR 1=1)</span> ';
+                }
+                if (bd.has_comment_truncation) {
+                    badgesRow.innerHTML += '<span class="badge badge-danger">Comment Truncation (--)</span> ';
+                }
+                if (!bd.has_quote_breakout && !bd.has_boolean_tautology && !bd.has_comment_truncation) {
+                    badgesRow.innerHTML = '<span class="badge badge-success">Clean Variable Binding</span>';
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Simulation error.');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Phase 3: Mitigation Live Login
+        function fillLogin(u, p) {
+            document.getElementById('login-username').value = u;
+            document.getElementById('login-password').value = p;
+            runSecureLogin();
+        }
+
+        async function runSecureLogin() {
+            const u = document.getElementById('login-username').value;
+            const p = document.getElementById('login-password').value;
+            const btn = document.getElementById('btn-login');
+            btn.disabled = true;
+
+            const resultsDiv = document.getElementById('login-results');
+            resultsDiv.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/secure-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                const data = await response.json();
+
+                const badge = document.getElementById('login-badge');
+                const msgBox = document.getElementById('login-message-box');
+                const msg = document.getElementById('login-message');
+                const queryUsed = document.getElementById('login-query-used');
+                const paramBound = document.getElementById('login-param-bound');
+                const neutNote = document.getElementById('login-neutralization');
+                const profileCard = document.getElementById('user-profile-card');
+
+                queryUsed.textContent = data.security_details.query_used;
+                paramBound.textContent = JSON.stringify(data.security_details.parameters_bound);
+
+                if (data.success) {
+                    badge.className = 'badge badge-success';
+                    badge.textContent = 'AUTHENTICATED SECURELY';
+                    msgBox.className = 'alert-box alert-success mt-1';
+                    msg.textContent = data.message;
+                    neutNote.textContent = 'Legitimate credentials verified via parameterized query and PBKDF2 hash.';
+                    profileCard.style.display = 'block';
+                    document.getElementById('profile-name').textContent = data.user.full_name;
+                    document.getElementById('profile-role').textContent = data.user.role;
+                } else {
+                    badge.className = 'badge badge-danger';
+                    badge.textContent = 'ACCESS DENIED (SAFE FAILURE)';
+                    msgBox.className = 'alert-box alert-danger mt-1';
+                    msg.textContent = data.message;
+                    neutNote.textContent = data.security_details.neutralization_note;
+                    profileCard.style.display = 'none';
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Secure login request failed.');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // Initialize default state on load
+        window.addEventListener('DOMContentLoaded', () => {
+            runDetection();
+            runSimulation();
+        });
+    </script>
+</body>
+</html>
